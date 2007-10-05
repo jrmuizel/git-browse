@@ -1,0 +1,14 @@
+the first cut should probably be written in python using gtk
+
+the difficult but useful part will be maintaining the location of the scroll bar
+it should track code movement. I'm not sure the best way to do this though.
+
+load all the revisions of a file from git-rev-list
+
+line movement should be weighted against perhaps proportionally to the distace from the edge of the window
+alternatively the middle line can be highlighted and stay centered. (this might be more intuitive)
+
+we need a mapping from the current lines to the new lines.
+
+it would be good if the movement was bijective and use f(x) for motion in one direction and f^-1(x) for
+movement in the other. Or have f(x) == f^-1(x)
