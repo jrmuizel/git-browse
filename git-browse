@@ -571,11 +571,17 @@ class ShowWindow(object):
 
 	def update_revision(self):
 		commit_sha1 = self.commits[self.commit_index]
-		print "%d of %d = %s" % (self.commit_index, len(self.commits), commit_sha1)
+		print "%d of %d = %s" % (self.commit_index+1, len(self.commits), commit_sha1)
 		fp = os.popen("git show " + commit_sha1 + ":" + self.file)
 		self.buffer.set_text(unicode(fp.read(), self.encoding).encode('utf-8'))
 		fp.close()
-	
+		
+		self.forward_button.set_sensitive(True)
+		self.back_button.set_sensitive(True)
+		if self.commit_index == 0:
+			self.forward_button.set_sensitive(False)
+		if self.commit_index == len(self.commits) - 1:
+			self.back_button.set_sensitive(False)
 	def show(self):
 		self.window.show()
 
@@ -587,15 +593,15 @@ class ShowWindow(object):
 		
 		tool_bar = gtk.Toolbar()
 		
-		back_button = gtk.ToolButton(gtk.STOCK_GO_BACK)
-		back_button.connect("clicked", self.back_menu_response, "back")
-		back_button.show()
-		tool_bar.insert(back_button, -1)
+		self.back_button = gtk.ToolButton(gtk.STOCK_GO_BACK)
+		self.back_button.connect("clicked", self.back_menu_response, "back")
+		self.back_button.show()
+		tool_bar.insert(self.back_button, -1)
 		
-		forward_button = gtk.ToolButton(gtk.STOCK_GO_FORWARD)
-		forward_button.connect("clicked", self.forward_menu_response, "forward")
-		forward_button.show()
-		tool_bar.insert(forward_button, -1)
+		self.forward_button = gtk.ToolButton(gtk.STOCK_GO_FORWARD)
+		self.forward_button.connect("clicked", self.forward_menu_response, "forward")
+		self.forward_button.show()
+		tool_bar.insert(self.forward_button, -1)
 		
 		vbox.pack_start(tool_bar, expand=False, fill=True)
 		tool_bar.show()
