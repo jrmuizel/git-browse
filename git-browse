@@ -197,6 +197,8 @@ class ShowWindow(object):
 		height = int(monitor.height * 0.66)
 		self.window.set_default_size(width, height)
 
+		self.window.connect("destroy", self._destroy_cb)
+
 		self.file = file
 		self.encoding = encoding
 
@@ -278,6 +280,14 @@ class ShowWindow(object):
 			self.forward_button.set_sensitive(False)
 		if self.commit_index == len(self.commits) - 1:
 			self.back_button.set_sensitive(False)
+
+	def _destroy_cb(self, widget):
+		"""Callback for when a window we manage is destroyed."""
+		self.quit()
+
+	def quit(self):
+		"""Stop the GTK+ main loop."""
+		gtk.main_quit()
 
 	def show(self):
 		self.window.show()
