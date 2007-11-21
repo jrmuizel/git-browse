@@ -610,6 +610,50 @@ class ShowWindow(object):
 		self.commit_index = 0
 		self.update_revision()
 
+	def switch_revision(self, target_index, source_index):
+		self.commit_index = target_index
+		target_sha1 = self.commits[target_index]
+		source_sha1 = self.commits[source_index]
+
+		fp = os.popen("git show " + target_sha1 + ":" + self.file)
+		target_text = unicode(fp.read(), self.encoding).encode('utf-8')
+		fp.close()
+
+		fp = os.popen("git show " + source_sha1 + ":" + self.file)
+		source_text = unicode(fp.read(), self.encoding).encode('utf-8')
+		fp.close()
+
+		import difflib
+		diff = difflib.ndiff(source_text.splitlines(1), target_text.splitlines(1))
+		iter = self.buffer.get_iter_at_line(0)
+		for line in diff:
+			prefix = line[:2]
+			if prefix == "  ":
+				old = iter.copy()
+				iter.forward_line()
+				text_to_verify = old.get_slice(iter)
+				if text_to_verify != line[2:]:
+					print text_to_verify, line[2:]
+					assert(text_to_verify == line[2:])
+			elif prefix == "+ ":
+				self.buffer.insert(iter, line[2:])
+			elif prefix == "- ":
+				old = iter.copy()
+				iter.forward_line()
+				text_to_delete = old.get_slice(iter)
+				if text_to_delete != line[2:]:
+					print text_to_delete, line[2:]
+					assert(text_to_delete == line[2:])
+				assert(old.get_line() < iter.get_line())
+				self.buffer.delete(old, iter)
+
+		self.forward_button.set_sensitive(True)
+		self.back_button.set_sensitive(True)
+		if self.commit_index == 0:
+			self.forward_button.set_sensitive(False)
+		if self.commit_index == len(self.commits) - 1:
+			self.back_button.set_sensitive(False)
+
 
 	def update_revision(self):
 		commit_sha1 = self.commits[self.commit_index]
@@ -630,9 +674,6 @@ class ShowWindow(object):
                
                 fp = os.popen("git show " + commit_sha1 + ":" + self.file)
 		self.buffer.set_text(unicode(fp.read(), self.encoding).encode('utf-8'))
-		fp.close()
-                fp = os.popen("git diff-tree -p " + parent_sha1 + " " + commit_sha1)
-		self.buffer.set_text(unicode(fp.read(), encoding).encode('utf-8'))
 		fp.close()
 
                 #self.sourceview.layout.invalidate()
@@ -741,8 +782,7 @@ class ShowWindow(object):
 
 
 	def back_menu_response(self, widget, string):
-		self.commit_index = min(self.commit_index + 1, len(self.commits)-1)
-		self.update_revision()
+		self.switch_revision(min(self.commit_index + 1, len(self.commits)-1), self.commit_index)
 		"""
 		dialog = gtk.FileChooserDialog("Save..", None, gtk.FILE_CHOOSER_ACTION_SAVE,
 				(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
@@ -758,8 +798,9 @@ class ShowWindow(object):
 		dialog.destroy()"""
 	
 	def forward_menu_response(self, widget, string):
-		self.commit_index = max(self.commit_index-1, 0)
-		self.update_revision()
+		self.switch_revision(max(self.commit_index-1, 0), self.commit_index)
+		#self.commit_index = max(self.commit_index-1, 0)
+		#self.update_revision()
 		"""
 		dialog = gtk.FileChooserDialog("Save..", None, gtk.FILE_CHOOSER_ACTION_SAVE,
 				(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
