@@ -660,6 +660,8 @@ class ShowWindow(object):
 		self.update_view()
 
 	def update_view(self):
+		commit_sha1 = self.commits[self.commit_index]
+
 		fp = os.popen("git cat-file commit " + commit_sha1)
 		#commit_msg = "\n".join(fp.read().splitlines(False)[5:])
 		commit_msg = fp.read()
