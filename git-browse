@@ -267,7 +267,7 @@ class ShowWindow(object):
 	def update_view(self):
 		commit_sha1 = self.commits[self.commit_index]
 
-		fp = os.popen("git show " + commit_sha1)
+		fp = os.popen("git show " + commit_sha1 + " " + self.file)
 		commit_msg = fp.read()
 		fp.close()
 
