@@ -664,7 +664,7 @@ class ShowWindow(object):
 
 		fp = os.popen("git cat-file commit " + commit_sha1)
 		#commit_msg = "\n".join(fp.read().splitlines(False)[5:])
-		commit_msg = fp.read()
+		commit_msg = "".join(fp.readlines()[2:])
 		fp.close()
 
 		self.commit_buffer.set_text(commit_msg)
