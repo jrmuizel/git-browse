@@ -73,7 +73,6 @@ def get_mime_type(file):
                    "py": "text/x-python" }
         ext = self.file.split(".")[-1]
         mime_type = extmap.get(ext, "text/plain")
-    print "mime", mime_type
     return mime_type
 
 re_ident = re.compile('(author|committer) (?P<ident>.*) (?P<epoch>\d+) (?P<tz>[+-]\d{4})')
@@ -255,7 +254,7 @@ class ShowWindow(object):
 
 	def set_revision(self):
 		commit_sha1 = self.commits[self.commit_index]
-		print "%d of %d = %s" % (self.commit_index+1, len(self.commits), commit_sha1)
+		#print "%d of %d = %s" % (self.commit_index+1, len(self.commits), commit_sha1)
 		
                 fp = os.popen("git show " + commit_sha1 + ":" + self.file)
 		self.buffer.set_text(unicode(fp.read(), self.encoding).encode('utf-8'))
