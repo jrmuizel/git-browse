@@ -646,6 +646,13 @@ class ShowWindow(object):
 					assert(text_to_delete == line[2:])
 				assert(old.get_line() < iter.get_line())
 				self.buffer.delete(old, iter)
+	
+		fp = os.popen("git cat-file commit " + target_sha1)
+		#commit_msg = "\n".join(fp.read().splitlines(False)[5:])
+		commit_msg = fp.read()
+		fp.close()
+
+		self.commit_buffer.set_text(commit_msg)
 
 		self.forward_button.set_sensitive(True)
 		self.back_button.set_sensitive(True)
@@ -680,7 +687,6 @@ class ShowWindow(object):
 
                
                 while gtk.events_pending():
-                    print "event1"
                     gtk.main_iteration()
 
                 print self.scrollwin.get_vadjustment().get_value()
@@ -692,6 +698,15 @@ class ShowWindow(object):
                     gtk.main_iteration()
                 #if window:
                 #    window.end_paint()
+		
+		fp = os.popen("git cat-file commit " + commit_sha1)
+		#commit_msg = "\n".join(fp.read().splitlines(False)[5:])
+		commit_msg = fp.read()
+		fp.close()
+
+		self.commit_buffer.set_text(commit_msg)
+
+
 		self.forward_button.set_sensitive(True)
 		self.back_button.set_sensitive(True)
 		if self.commit_index == 0:
@@ -706,6 +721,8 @@ class ShowWindow(object):
 		vbox = gtk.VBox()
 		self.window.add(vbox)
 		vbox.show()
+
+		hbox = gtk.HBox()
 		
 		tool_bar = gtk.Toolbar()
 		
@@ -719,15 +736,16 @@ class ShowWindow(object):
 		self.forward_button.show()
 		tool_bar.insert(self.forward_button, -1)
 		
+		
 		vbox.pack_start(tool_bar, expand=False, fill=True)
 		tool_bar.show()
 
-		hpan = gtk.HPaned()
+		vpan = gtk.VPaned();
 
 		scrollwin = gtk.ScrolledWindow()
 		scrollwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		scrollwin.set_shadow_type(gtk.SHADOW_IN)
-		hpan.pack1(scrollwin, True, True)
+		vpan.pack2(scrollwin, resize=True, shrink=True)
 		scrollwin.show()
                 self.scrollwin = scrollwin
 
@@ -771,8 +789,24 @@ class ShowWindow(object):
 		column.add_attribute(cell, "text", 0)
 		self.treeview.append_column(column)
                 """
-		vbox.pack_start(hpan, expand=True, fill=True)
-		hpan.show()
+		
+		# The commit message window
+		scrollwin = gtk.ScrolledWindow()
+		scrollwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		scrollwin.set_shadow_type(gtk.SHADOW_IN)
+		vpan.pack1(scrollwin, resize=False, shrink=True);
+		scrollwin.show()
+
+		commit_text = gtk.TextView()
+		commit_text.set_editable(False)
+		self.commit_buffer = gtk.TextBuffer()
+		commit_text.set_buffer(self.commit_buffer)
+		scrollwin.add(commit_text)
+		commit_text.show()
+
+		
+		vbox.pack_start(vpan, expand=True, fill=True)
+		vpan.show()
                 
         def value_changed():
                 if self.hadjust:
