@@ -608,7 +608,7 @@ class ShowWindow(object):
 			input_line = fp.readline()
 		fp.close()
 		self.commit_index = 0
-		self.update_revision()
+		self.set_revision()
 
 	def switch_revision(self, target_index, source_index):
 		self.commit_index = target_index
@@ -647,58 +647,19 @@ class ShowWindow(object):
 				assert(old.get_line() < iter.get_line())
 				self.buffer.delete(old, iter)
 	
-		fp = os.popen("git cat-file commit " + target_sha1)
-		#commit_msg = "\n".join(fp.read().splitlines(False)[5:])
-		commit_msg = fp.read()
-		fp.close()
+		self.update_view()
 
-		self.commit_buffer.set_text(commit_msg)
-
-		self.forward_button.set_sensitive(True)
-		self.back_button.set_sensitive(True)
-		if self.commit_index == 0:
-			self.forward_button.set_sensitive(False)
-		if self.commit_index == len(self.commits) - 1:
-			self.back_button.set_sensitive(False)
-
-
-	def update_revision(self):
+	def set_revision(self):
 		commit_sha1 = self.commits[self.commit_index]
 		print "%d of %d = %s" % (self.commit_index+1, len(self.commits), commit_sha1)
 		
-                hadjust = self.scrollwin.get_hadjustment().get_value()
-                vadjust = self.scrollwin.get_vadjustment().get_value()
-                window = self.window.window
-                
-                self.window.get_size() 
-                alloc = self.scrollwin.get_allocation()
-                (wtotal,htotal) = alloc.width, alloc.height
-                if self.window.window:
-                    print window
-                    print (0, 0, wtotal, htotal)
-                    window.begin_paint_rect( (0,0,wtotal,htotal) )
-                #window.clear()
-               
                 fp = os.popen("git show " + commit_sha1 + ":" + self.file)
 		self.buffer.set_text(unicode(fp.read(), self.encoding).encode('utf-8'))
 		fp.close()
 
-                #self.sourceview.layout.invalidate()
+		self.update_view()
 
-               
-                while gtk.events_pending():
-                    gtk.main_iteration()
-
-                print self.scrollwin.get_vadjustment().get_value()
-                
-                self.scrollwin.get_hadjustment().set_value(hadjust)
-                self.scrollwin.get_vadjustment().set_value(vadjust)
-                
-                while gtk.events_pending():
-                    gtk.main_iteration()
-                #if window:
-                #    window.end_paint()
-		
+	def update_view(self):
 		fp = os.popen("git cat-file commit " + commit_sha1)
 		#commit_msg = "\n".join(fp.read().splitlines(False)[5:])
 		commit_msg = fp.read()
@@ -713,6 +674,7 @@ class ShowWindow(object):
 			self.forward_button.set_sensitive(False)
 		if self.commit_index == len(self.commits) - 1:
 			self.back_button.set_sensitive(False)
+
 	def show(self):
 		self.window.show()
 
@@ -833,8 +795,6 @@ class ShowWindow(object):
 	
 	def forward_menu_response(self, widget, string):
 		self.switch_revision(max(self.commit_index-1, 0), self.commit_index)
-		#self.commit_index = max(self.commit_index-1, 0)
-		#self.update_revision()
 		"""
 		dialog = gtk.FileChooserDialog("Save..", None, gtk.FILE_CHOOSER_ACTION_SAVE,
 				(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
