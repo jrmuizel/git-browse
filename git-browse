@@ -26,6 +26,12 @@ import cairo
 import math
 import string
 import fcntl
+try:
+    import gnomevfs
+    have_gnomevfs = True
+except ImportError:
+    have_gnomevfs = False
+    print "Running without gnomevfs"
 
 try:
     import gtksourceview
@@ -33,6 +39,42 @@ try:
 except ImportError:
     have_gtksourceview = False
     print "Running without gtksourceview module"
+
+
+def get_mime_type(file):
+    if have_gnomevfs:
+        if os.path.isabs(file):
+            path = file
+        else:
+            path = os.path.abspath(file)
+        #uri = gnome.vfs.URI(path)
+        mime_type = gnomevfs.get_mime_type(path) # needs ASCII filename, not URI
+    else:            
+	# the extmap stuff is stolen from meld
+        # gnome.vfs.get_mime_type seems to be broken. fake it.
+        extmap = { "xml":"text/xml",
+                   "glade":"text/xml",
+                   "cpp":"text/x-cpp",
+                   "cxx":"text/x-cpp",
+                   "cc":"text/x-cpp",
+                   "C":"text/x-cpp",
+                   "c":"text/x-c",
+                   "hpp":"text/x-cpp",
+                   "hxx":"text/x-cpp",
+                   "hh":"text/x-cpp",
+                   "H":"text/x-cpp",
+                   "h":"text/x-cpp",
+                   "inl":"text/x-cpp",
+                   "desktop": "application/x-desktop",
+                   "diff": "text/x-diff",
+                   "patch": "text/x-diff",
+                   "html": "text/html",
+                   "po": "text/x-po",
+                   "py": "text/x-python" }
+        ext = self.file.split(".")[-1]
+        mime_type = extmap.get(ext, "text/plain")
+    print "mime", mime_type
+    return mime_type
 
 re_ident = re.compile('(author|committer) (?P<ident>.*) (?P<epoch>\d+) (?P<tz>[+-]\d{4})')
 
@@ -572,10 +614,43 @@ class ShowWindow(object):
 	def update_revision(self):
 		commit_sha1 = self.commits[self.commit_index]
 		print "%d of %d = %s" % (self.commit_index+1, len(self.commits), commit_sha1)
-		fp = os.popen("git show " + commit_sha1 + ":" + self.file)
+		
+                hadjust = self.scrollwin.get_hadjustment().get_value()
+                vadjust = self.scrollwin.get_vadjustment().get_value()
+                window = self.window.window
+                
+                self.window.get_size() 
+                alloc = self.scrollwin.get_allocation()
+                (wtotal,htotal) = alloc.width, alloc.height
+                if self.window.window:
+                    print window
+                    print (0, 0, wtotal, htotal)
+                    window.begin_paint_rect( (0,0,wtotal,htotal) )
+                #window.clear()
+               
+                fp = os.popen("git show " + commit_sha1 + ":" + self.file)
 		self.buffer.set_text(unicode(fp.read(), self.encoding).encode('utf-8'))
 		fp.close()
-		
+                fp = os.popen("git diff-tree -p " + parent_sha1 + " " + commit_sha1)
+		self.buffer.set_text(unicode(fp.read(), encoding).encode('utf-8'))
+		fp.close()
+
+                #self.sourceview.layout.invalidate()
+
+               
+                while gtk.events_pending():
+                    print "event1"
+                    gtk.main_iteration()
+
+                print self.scrollwin.get_vadjustment().get_value()
+                
+                self.scrollwin.get_hadjustment().set_value(hadjust)
+                self.scrollwin.get_vadjustment().set_value(vadjust)
+                
+                while gtk.events_pending():
+                    gtk.main_iteration()
+                #if window:
+                #    window.end_paint()
 		self.forward_button.set_sensitive(True)
 		self.back_button.set_sensitive(True)
 		if self.commit_index == 0:
@@ -613,11 +688,12 @@ class ShowWindow(object):
 		scrollwin.set_shadow_type(gtk.SHADOW_IN)
 		hpan.pack1(scrollwin, True, True)
 		scrollwin.show()
+                self.scrollwin = scrollwin
 
-		if have_gtksourceview and False:
+		if have_gtksourceview:
 			self.buffer = gtksourceview.SourceBuffer()
 			slm = gtksourceview.SourceLanguagesManager()
-			gsl = slm.get_language_from_mime_type("text/x-patch")
+			gsl = slm.get_language_from_mime_type(get_mime_type(self.file))
 			self.buffer.set_highlight(True)
 			self.buffer.set_language(gsl)
 			sourceview = gtksourceview.SourceView(self.buffer)
@@ -630,7 +706,8 @@ class ShowWindow(object):
 		sourceview.modify_font(pango.FontDescription("Monospace"))
 		scrollwin.add(sourceview)
 		sourceview.show()
-
+                self.sourceview = sourceview
+                """
 		# The file hierarchy: a scrollable treeview
 		scrollwin = gtk.ScrolledWindow()
 		scrollwin.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -638,23 +715,30 @@ class ShowWindow(object):
 		scrollwin.set_size_request(20, -1)
 		hpan.pack2(scrollwin, True, True)
 		scrollwin.show()
-
+                
 		self.model = gtk.TreeStore(str, str, str)
 		self.treeview = gtk.TreeView(self.model)
 		self.treeview.set_search_column(1)
 		#self.treeview.connect("cursor-changed", self._treeview_clicked)
 		scrollwin.add(self.treeview)
 		self.treeview.show()
-
+                
 		cell = gtk.CellRendererText()
 		cell.set_property("width-chars", 20)
 		column = gtk.TreeViewColumn("Select to annotate")
 		column.pack_start(cell, expand=True)
 		column.add_attribute(cell, "text", 0)
 		self.treeview.append_column(column)
-
+                """
 		vbox.pack_start(hpan, expand=True, fill=True)
 		hpan.show()
+                
+        def value_changed():
+                if self.hadjust:
+                    self.scrollwin.set_hadjustment(self.hadjust)
+                    self.scrollwin.set_vadjustment(self.vadjust)
+		    self.hadjust = None
+
 
 	def back_menu_response(self, widget, string):
 		self.commit_index = min(self.commit_index + 1, len(self.commits)-1)
