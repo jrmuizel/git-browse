@@ -34,11 +34,23 @@ except ImportError:
     print "Running without gnomevfs"
 
 try:
-    import gtksourceview
+    from gtksourceview import SourceView, SourceBuffer, SourceLanguagesManager
     have_gtksourceview = True
+    have_gtksourceview2 = False
 except ImportError:
     have_gtksourceview = False
     print "Running without gtksourceview module"
+try:
+    import gtksourceview2
+    SourceView = gtksourceview2.View
+    SourceBuffer = gtksourceview2.Buffer
+    SourceLanguagesManager = gtksourceview2.LanguageManager
+    have_gtksourceview = True
+    have_gtksourceview2 = True
+except ImportError:
+    have_gtksourceview = False
+    print "Running without gtksourceview module"
+
 
 
 def get_mime_type(file):
@@ -325,14 +337,31 @@ class ShowWindow(object):
 		vpan.pack2(scrollwin, resize=True, shrink=True)
 		scrollwin.show()
                 self.scrollwin = scrollwin
+		
+		def get_language_for_mime_type(mime):
+			lang_manager = gtksourceview2.language_manager_get_default()
+			lang_ids = lang_manager.get_language_ids()
+			for i in lang_ids:
+				lang = lang_manager.get_language(i)
+				for m in lang.get_mime_types():
+					if m == mime:
+						return lang
+			return None
+
 
 		if have_gtksourceview:
-			self.buffer = gtksourceview.SourceBuffer()
-			slm = gtksourceview.SourceLanguagesManager()
-			gsl = slm.get_language_from_mime_type(get_mime_type(self.file))
-			self.buffer.set_highlight(True)
+			self.buffer = SourceBuffer()
+			slm = SourceLanguagesManager()
+			if have_gtksourceview2:
+				gsl = get_language_for_mime_type(get_mime_type(self.file))
+			else:
+				gsl = slm.get_language_from_mime_type(get_mime_type(self.file))
+			if have_gtksourceview2:
+				self.buffer.set_highlight_syntax(True)
+			else:
+				self.buffer.set_highlight(True)
 			self.buffer.set_language(gsl)
-			sourceview = gtksourceview.SourceView(self.buffer)
+			sourceview = SourceView(self.buffer)
 		else:
 			self.buffer = gtk.TextBuffer()
 			sourceview = gtk.TextView(self.buffer)
@@ -663,12 +692,12 @@ class GitView(object):
 		scrollwin.show()
 
 		if have_gtksourceview:
-			self.message_buffer = gtksourceview.SourceBuffer()
-			slm = gtksourceview.SourceLanguagesManager()
+			self.message_buffer = SourceBuffer()
+			slm = SourceLanguagesManager()
 			gsl = slm.get_language_from_mime_type("text/x-patch")
 			self.message_buffer.set_highlight(True)
 			self.message_buffer.set_language(gsl)
-			sourceview = gtksourceview.SourceView(self.message_buffer)
+			sourceview = SourceView(self.message_buffer)
 		else:
 			self.message_buffer = gtk.TextBuffer()
 			sourceview = gtk.TextView(self.message_buffer)
