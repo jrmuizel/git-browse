@@ -249,11 +249,17 @@ class ShowWindow(object):
 				old = iter.copy()
 				iter.forward_line()
 				text_to_verify = old.get_slice(iter)
+				self.buffer.remove_tag_by_name("insert", old, iter)
+				self.buffer.apply_tag_by_name("keep", old, iter)
 				if text_to_verify != line[2:]:
 					print text_to_verify, line[2:]
 					assert(text_to_verify == line[2:])
 			elif prefix == "+ ":
 				self.buffer.insert(iter, line[2:])
+				old = iter.copy()
+				old.backward_line()
+				self.buffer.remove_tag_by_name("keep", old, iter)
+				self.buffer.apply_tag_by_name("insert", old, iter)
 			elif prefix == "- ":
 				old = iter.copy()
 				iter.forward_line()
@@ -285,7 +291,7 @@ class ShowWindow(object):
 
 		self.commit_buffer.set_text(commit_msg)
 
-		#self.buffer.apply_tag_by_name("mysize", self.buffer.get_start_iter(), self.buffer.get_end_iter())
+		self.buffer.apply_tag_by_name("mysize", self.buffer.get_start_iter(), self.buffer.get_end_iter())
 
 		self.forward_button.set_sensitive(True)
 		self.back_button.set_sensitive(True)
@@ -365,8 +371,14 @@ class ShowWindow(object):
 		else:
 			self.buffer = gtk.TextBuffer()
 			sourceview = gtk.TextView(self.buffer)
-		#tag = self.buffer.create_tag("mysize")
-		#tag.set_property("size-points", 8)
+		tag = self.buffer.create_tag("mysize")
+		tag.set_property("size-points", 8)
+		#tag.set_property("background", "yellow")
+		inserttag = self.buffer.create_tag("insert")
+		inserttag.set_property("paragraph-background-gdk", gtk.gdk.Color(55535, 65535, 55535))
+		# XXX: setting to white is a hack
+		keeptag = self.buffer.create_tag("keep")
+		keeptag.set_property("paragraph-background", "white")
 
 		sourceview.set_editable(False)
 		sourceview.modify_font(pango.FontDescription("Monospace"))
