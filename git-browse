@@ -1044,7 +1044,7 @@ if __name__ == "__main__":
 	if (len(sys.argv) > 1 ):
 		if (sys.argv[1] == "--without-diff"):
 			without_diff = 1
-	
+	#XXX: handle being in a subdirectory
 	show = ShowWindow(sys.argv[1], "utf-8")
 	#show.set_revision("HEAD")
 	show.show()
