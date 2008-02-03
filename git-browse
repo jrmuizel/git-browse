@@ -284,8 +284,9 @@ class ShowWindow(object):
 		fp.close()
 
 		self.commit_buffer.set_text(commit_msg)
-
-		#self.buffer.apply_tag_by_name("mysize", self.buffer.get_start_iter(), self.buffer.get_end_iter())
+		
+		if self.adjust_size:
+			self.buffer.apply_tag_by_name("mysize", self.buffer.get_start_iter(), self.buffer.get_end_iter())
 
 		self.forward_button.set_sensitive(True)
 		self.back_button.set_sensitive(True)
@@ -365,8 +366,10 @@ class ShowWindow(object):
 		else:
 			self.buffer = gtk.TextBuffer()
 			sourceview = gtk.TextView(self.buffer)
-		#tag = self.buffer.create_tag("mysize")
-		#tag.set_property("size-points", 8)
+		self.adjust_size = False
+		if self.adjust_size:
+			tag = self.buffer.create_tag("mysize")
+			tag.set_property("size-points", 4)
 
 		sourceview.set_editable(False)
 		sourceview.modify_font(pango.FontDescription("Monospace"))
