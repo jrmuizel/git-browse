@@ -243,17 +243,27 @@ class ShowWindow(object):
 		import difflib
 		diff = difflib.ndiff(source_text.splitlines(1), target_text.splitlines(1))
 		iter = self.buffer.get_iter_at_line(0)
+		last_prefix = "  "
 		for line in diff:
 			prefix = line[:2]
 			if prefix == "  ":
 				old = iter.copy()
 				iter.forward_line()
 				text_to_verify = old.get_slice(iter)
+				self.buffer.remove_tag_by_name("insert", old, iter)
+				self.buffer.remove_tag_by_name("modified", old, iter)
+				self.buffer.apply_tag_by_name("keep", old, iter)
 				if text_to_verify != line[2:]:
 					print text_to_verify, line[2:]
 					assert(text_to_verify == line[2:])
 			elif prefix == "+ ":
 				self.buffer.insert(iter, line[2:])
+				old = iter.copy()
+				old.backward_line()
+
+				# tag the added lines as insert
+				self.buffer.remove_tag_by_name("keep", old, iter)
+				self.buffer.apply_tag_by_name("insert", old, iter)
 			elif prefix == "- ":
 				old = iter.copy()
 				iter.forward_line()
@@ -263,9 +273,22 @@ class ShowWindow(object):
 					assert(text_to_delete == line[2:])
 				assert(old.get_line() < iter.get_line())
 				self.buffer.delete(old, iter)
+			elif prefix == "? ":
+				start = iter.copy()
+				start.backward_line()
+				end = start.copy()
+				start.forward_char()
+				if last_prefix == "+ ":
+					for c in line[2:]:
+						if c == "+" or c == "^":
+							print "found mod"
+							self.buffer.apply_tag_by_name("modified", start, end)
+						start.forward_char()
+						end.forward_char()
+			last_prefix = prefix
 	
 		self.update_view()
-
+	
 	def set_revision(self):
 		commit_sha1 = self.commits[self.commit_index]
 		#print "%d of %d = %s" % (self.commit_index+1, len(self.commits), commit_sha1)
@@ -370,6 +393,18 @@ class ShowWindow(object):
 		if self.adjust_size:
 			tag = self.buffer.create_tag("mysize")
 			tag.set_property("size-points", 4)
+		
+		#tag.set_property("background", "yellow")
+		inserttag = self.buffer.create_tag("insert")
+		inserttag.set_property("paragraph-background-gdk", gtk.gdk.Color(55535, 65535, 55535))
+		# XXX: setting to white is a hack
+		keeptag = self.buffer.create_tag("keep")
+		keeptag.set_property("paragraph-background", "white")
+		#tag.set_property("background", "yellow")
+		
+		modifiedtag = self.buffer.create_tag("modified")
+		modifiedtag.set_property("background-gdk", gtk.gdk.Color(65535, 55535, 55535))
+
 
 		sourceview.set_editable(False)
 		sourceview.modify_font(pango.FontDescription("Monospace"))
@@ -1035,7 +1070,7 @@ if __name__ == "__main__":
 	if (len(sys.argv) > 1 ):
 		if (sys.argv[1] == "--without-diff"):
 			without_diff = 1
-	
+	#XXX: handle being in a subdirectory
 	show = ShowWindow(sys.argv[1], "utf-8")
 	#show.set_revision("HEAD")
 	show.show()
