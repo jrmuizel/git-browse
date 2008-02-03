@@ -281,7 +281,6 @@ class ShowWindow(object):
 				if last_prefix == "+ ":
 					for c in line[2:]:
 						if c == "+" or c == "^":
-							print "found mod"
 							self.buffer.apply_tag_by_name("modified", start, end)
 						start.forward_char()
 						end.forward_char()
