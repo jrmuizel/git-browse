@@ -274,13 +274,20 @@ class ShowWindow(object):
 				assert(old.get_line() < iter.get_line())
 				self.buffer.delete(old, iter)
 			elif prefix == "? ":
+				# ndiff gives some additional information about what changed on a perline basis
+				
+				# XXX: switch the order of start and end
+				# setup start and end so that start is one character ahead of end
 				start = iter.copy()
 				start.backward_line()
 				end = start.copy()
 				start.forward_char()
+
 				if last_prefix == "+ ":
+					# search for +'s and ^'s
 					for c in line[2:]:
 						if c == "+" or c == "^":
+							# highlight the modified character
 							self.buffer.apply_tag_by_name("modified", start, end)
 						start.forward_char()
 						end.forward_char()
