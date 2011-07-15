@@ -39,7 +39,7 @@ try:
     have_gtksourceview2 = False
 except ImportError:
     have_gtksourceview = False
-    print "Running without gtksourceview module"
+
 try:
     import gtksourceview2
     SourceView = gtksourceview2.View
@@ -49,8 +49,9 @@ try:
     have_gtksourceview2 = True
 except ImportError:
     have_gtksourceview = False
-    print "Running without gtksourceview module"
 
+if not have_gtksourceview:
+	print "Running without gtksourceview module"
 
 
 def get_mime_type(file):
